@@ -1,10 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-// @ts-ignore
 import { supabase } from '@/db/supabase';
 import type { User } from '@supabase/supabase-js';
-// @ts-ignore
 import type { Profile } from '@/types/types';
-import { toast } from 'sonner';
 
 export async function getProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
@@ -12,19 +9,19 @@ export async function getProfile(userId: string): Promise<Profile | null> {
     .select('*')
     .eq('id', userId)
     .maybeSingle();
-
   if (error) {
-    console.error('获取用户信息失败:', error);
+    console.error('Error fetching profile:', error);
     return null;
   }
   return data;
 }
+
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
   signInWithUsername: (username: string, password: string) => Promise<{ error: Error | null }>;
-  signUpWithUsername: (username: string, password: string) => Promise<{ error: Error | null }>;
+  signUpWithUsername: (username: string, password: string, fullName?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -37,36 +34,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const refreshProfile = async () => {
-    if (!user) {
-      setProfile(null);
-      return;
-    }
-
+    if (!user) { setProfile(null); return; }
     const profileData = await getProfile(user.id);
     setProfile(profileData);
   };
 
   useEffect(() => {
-    supabase
-      .auth
-      .getSession()
-      // @ts-ignore
+    supabase.auth.getSession()
       .then(({ data: { session } }) => {
         setUser(session?.user ?? null);
         if (session?.user) {
           getProfile(session.user.id).then(setProfile);
         }
       })
-      // @ts-ignore
-      .catch(error => {
-        toast.error(`获取用户信息失败: ${error.message}`);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+      .finally(() => setLoading(false));
 
-    // @ts-ignore
-    // In this function, do NOT use any await calls. Use `.then()` instead to avoid deadlocks.
+    // In this function, do NOT use any await calls.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -82,11 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithUsername = async (username: string, password: string) => {
     try {
       const email = `${username}@miaoda.com`;
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       return { error: null };
     } catch (error) {
@@ -94,14 +73,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUpWithUsername = async (username: string, password: string) => {
+  const signUpWithUsername = async (username: string, password: string, fullName?: string) => {
     try {
       const email = `${username}@miaoda.com`;
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: { data: { username, full_name: fullName || username } },
       });
-
       if (error) throw error;
       return { error: null };
     } catch (error) {
