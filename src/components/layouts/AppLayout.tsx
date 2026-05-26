@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/hooks/use-theme';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import {
   LayoutDashboard, FolderKanban, Users, Package, FileText,
-  LogOut, Menu, ChevronRight, Building2, UserCog, X,
+  LogOut, Menu, ChevronRight, Building2, UserCog,
   ClipboardList, ArrowDownToLine, ArrowUpFromLine, BarChart2,
-  UserCheck, Calendar, DollarSign, Briefcase
+  UserCheck, Calendar, DollarSign, Briefcase, Sun, Moon
 } from 'lucide-react';
 import type { UserRole } from '@/types/types';
 
@@ -63,6 +64,7 @@ interface SidebarContentProps {
 
 function SidebarContent({ onClose }: SidebarContentProps) {
   const { profile, signOut } = useAuth();
+  const { isDark, toggle } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState<string[]>([]);
@@ -201,6 +203,15 @@ function SidebarContent({ onClose }: SidebarContentProps) {
           variant="ghost"
           size="sm"
           className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          onClick={toggle}
+        >
+          {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          {isDark ? 'Light Mode' : 'Dark Mode'}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
           onClick={handleSignOut}
         >
           <LogOut className="w-4 h-4" />
@@ -213,6 +224,7 @@ function SidebarContent({ onClose }: SidebarContentProps) {
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isDark, toggle } = useTheme();
 
   return (
     <div className="flex min-h-screen w-full">
@@ -235,7 +247,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarContent onClose={() => setMobileOpen(false)} />
             </SheetContent>
           </Sheet>
-          <span className="font-semibold text-foreground">GlassERP</span>
+          <span className="font-semibold text-foreground flex-1 min-w-0 truncate">GlassERP</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0"
+            onClick={toggle}
+            aria-label="Toggle theme"
+          >
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </Button>
         </header>
 
         <main className="flex-1 p-4 md:p-6 overflow-x-hidden">
