@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Search, FileText, Car, User2, ExternalLink, Download } from 'lucide-react';
+import { Plus, Search, FileText, Car, User2, ExternalLink, Download, Package } from 'lucide-react';
 import type { GatePass } from '@/types/types';
 import { exportCSV } from '@/utils/exportData';
 
@@ -40,10 +40,14 @@ export default function GatePassListPage() {
   };
 
   const filtered = passes.filter(gp => {
+    const itemNames = (gp.gate_pass_items || [])
+      .map(i => `${i.item_name} ${i.item_code || ''}`.toLowerCase())
+      .join(' ');
     const matchSearch = !search ||
       gp.gp_number.toLowerCase().includes(search.toLowerCase()) ||
       gp.person_name.toLowerCase().includes(search.toLowerCase()) ||
-      gp.vehicle_number?.toLowerCase().includes(search.toLowerCase());
+      (gp.vehicle_number?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
+      itemNames.includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || gp.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -85,7 +89,7 @@ export default function GatePassListPage() {
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search GP number, person..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 w-52 h-9" />
+          <Input placeholder="Search GP no., person, item..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 w-64 h-9" />
         </div>
         {['all', 'pending', 'approved', 'returned', 'closed'].map(s => (
           <Button key={s} variant={statusFilter === s ? 'default' : 'secondary'} size="sm" onClick={() => setStatusFilter(s)} className="h-8 capitalize">{s}</Button>
@@ -124,6 +128,23 @@ export default function GatePassListPage() {
                         {gp.gate_pass_items?.length || 0} item(s) · {gp.gp_date}
                       </span>
                     </div>
+                    {/* Item names row */}
+                    {gp.gate_pass_items && gp.gate_pass_items.length > 0 && (
+                      <div className="flex items-start gap-1.5 mt-2 flex-wrap">
+                        <Package className="w-3.5 h-3.5 shrink-0 text-muted-foreground mt-0.5" />
+                        {gp.gate_pass_items.map((item, idx) => (
+                          <Badge
+                            key={item.id}
+                            variant="secondary"
+                            className={`text-xs font-normal px-1.5 py-0 h-5 ${search && (item.item_name.toLowerCase().includes(search.toLowerCase()) || (item.item_code?.toLowerCase().includes(search.toLowerCase()) ?? false)) ? 'ring-1 ring-primary' : ''}`}
+                          >
+                            {item.item_name}
+                            {item.item_code && <span className="text-muted-foreground ml-1 font-mono">({item.item_code})</span>}
+                            <span className="text-muted-foreground ml-1">× {item.quantity}{item.unit ? ` ${item.unit}` : ''}</span>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                     {gp.purpose && <p className="text-xs text-muted-foreground mt-1.5">Purpose: {gp.purpose}</p>}
                   </div>
                   <Button variant="ghost" size="sm" asChild className="shrink-0 h-8">
